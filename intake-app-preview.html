@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Land Opportunity Intake - Preview</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #fafaf9;
+    color: #111827;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  input, select, textarea, button { font-family: inherit; font-size: 16px; }
+  input, select, textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #d6d3d1;
+    border-radius: 6px;
+    background: white;
+    color: #111827;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 3px #ede9fe;
+  }
+  textarea { min-height: 100px; resize: vertical; font-family: inherit; }
+  button { cursor: pointer; }
+  header { border-bottom: 1px solid #e7e5e4; background: white; }
+  .header-inner {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .app-title { font-size: 16px; font-weight: 600; color: #1c1917; }
+  .lang-toggle {
+    display: inline-flex;
+    overflow: hidden;
+    border-radius: 6px;
+    border: 1px solid #e7e5e4;
+    font-size: 13px;
+  }
+  .lang-toggle button {
+    padding: 6px 12px;
+    background: white;
+    color: #44403c;
+    border: none;
+    font-weight: 500;
+  }
+  .lang-toggle button.active { background: #7c3aed; color: white; }
+  main { max-width: 640px; margin: 0 auto; padding: 24px 16px 96px; }
+  .page-header { margin-bottom: 16px; }
+  .page-header h1 { font-size: 20px; font-weight: 600; color: #1c1917; margin-bottom: 4px; }
+  .page-header p { font-size: 14px; color: #57534e; }
+
+  /* Home page */
+  .home-hero {
+    text-align: center;
+    margin-bottom: 32px;
+    padding: 24px 0 8px;
+  }
+  .home-hero h1 { font-size: 24px; font-weight: 700; color: #1c1917; margin-bottom: 8px; }
+  .home-hero p { font-size: 14px; color: #57534e; }
+  .home-cards { display: flex; flex-direction: column; gap: 16px; }
+  .home-card {
+    background: white;
+    border: 1px solid #e7e5e4;
+    border-radius: 12px;
+    padding: 24px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    width: 100%;
+  }
+  .home-card:hover {
+    border-color: #8b5cf6;
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.08);
+    transform: translateY(-1px);
+  }
+  .home-card-icon {
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    background: #ede9fe;
+    color: #6d28d9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 700;
+  }
+  .home-card-content { flex: 1; }
+  .home-card-content h3 { font-size: 16px; font-weight: 600; color: #1c1917; margin-bottom: 4px; }
+  .home-card-content p { font-size: 13px; color: #57534e; }
+  .home-card-arrow { color: #a8a29e; font-size: 20px; align-self: center; }
+
+  /* Serial number display */
+  .serial-card {
+    background: white;
+    border: 1px solid #e7e5e4;
+    border-radius: 12px;
+    padding: 32px 24px;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .serial-label {
+    font-size: 13px;
+    color: #78716c;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 12px;
+    font-weight: 500;
+  }
+  .serial-number {
+    font-size: 48px;
+    font-weight: 700;
+    color: #6d28d9;
+    letter-spacing: 0.1em;
+    font-family: 'SF Mono', Monaco, Consolas, monospace;
+    margin-bottom: 12px;
+  }
+  .serial-help {
+    font-size: 13px;
+    color: #57534e;
+    max-width: 360px;
+    margin: 0 auto;
+  }
+  .serial-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #ede9fe;
+    color: #6d28d9;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .serial-input {
+    font-size: 32px !important;
+    text-align: center;
+    letter-spacing: 0.2em;
+    font-family: 'SF Mono', Monaco, Consolas, monospace;
+    font-weight: 600;
+    padding: 16px !important;
+  }
+  .error-banner {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 13px;
+    color: #991b1b;
+    margin-bottom: 12px;
+  }
+  .back-link {
+    background: none;
+    border: none;
+    color: #6d28d9;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 8px 0;
+    margin-bottom: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .back-link:hover { text-decoration: underline; }
+
+  /* Project picker cards */
+  .project-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
+  .project-card {
+    background: white;
+    border: 1px solid #e7e5e4;
+    border-radius: 10px;
+    padding: 16px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.15s;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .project-card:hover {
+    border-color: #8b5cf6;
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.08);
+  }
+  .project-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .project-card-serial {
+    font-family: 'SF Mono', Monaco, Consolas, monospace;
+    font-weight: 700;
+    color: #6d28d9;
+    font-size: 18px;
+    letter-spacing: 0.05em;
+  }
+  .project-card-date {
+    font-size: 12px;
+    color: #78716c;
+  }
+  .project-card-location {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1c1917;
+  }
+  .project-card-meta {
+    font-size: 13px;
+    color: #57534e;
+  }
+  .project-card-note {
+    font-size: 13px;
+    color: #44403c;
+    font-style: italic;
+    margin-top: 2px;
+  }
+
+  /* Tabs */
+  .tab-bar {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid #e7e5e4;
+    margin-bottom: 24px;
+    margin-top: 16px;
+  }
+  .tab-btn {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #57534e;
+    cursor: pointer;
+    margin-bottom: -1px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.15s;
+  }
+  .tab-btn:hover { color: #1c1917; border-bottom-color: #d6d3d1; }
+  .tab-btn.active { color: #6d28d9; border-bottom-color: #7c3aed; }
+  .tab-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: #e7e5e4;
+    color: #44403c;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .tab-btn.active .tab-badge { background: #ede9fe; color: #6d28d9; }
+
+  .section { margin-bottom: 24px; }
+  .section-header { margin-bottom: 12px; }
+  .section-header h2 { font-size: 16px; font-weight: 600; color: #1c1917; }
+  .section-header p { font-size: 12px; color: #78716c; margin-top: 4px; }
+  .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+  .field label { font-size: 14px; font-weight: 500; color: #292524; }
+  .field .help { font-size: 12px; color: #78716c; }
+  .field .req { color: #dc2626; margin-left: 2px; }
+  .row { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; }
+  .pill-group { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pill {
+    padding: 6px 12px;
+    border: 1px solid #d6d3d1;
+    background: white;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #44403c;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .pill:hover { background: #f5f5f4; }
+  .pill.active { border-color: #7c3aed; background: #f5f3ff; color: #6d28d9; }
+  .submit-btn {
+    width: 100%;
+    padding: 14px;
+    background: #7c3aed;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 600;
+    margin-top: 8px;
+  }
+  .submit-btn:hover { background: #6d28d9; }
+  .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .secondary-btn {
+    padding: 6px 10px;
+    background: white;
+    border: 1px solid #d6d3d1;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #44403c;
+  }
+  .dropzone {
+    border: 2px dashed #d6d3d1;
+    border-radius: 12px;
+    padding: 48px 24px;
+    text-align: center;
+    background: white;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .dropzone:hover { border-color: #8b5cf6; }
+  .dropzone p { font-size: 14px; font-weight: 500; color: #44403c; margin-bottom: 4px; }
+  .dropzone .small { font-size: 12px; color: #78716c; font-weight: 400; }
+  .file-list { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+  .file-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: white;
+    border: 1px solid #e7e5e4;
+    border-radius: 6px;
+    font-size: 14px;
+  }
+  .extract-success {
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    border-radius: 6px;
+    padding: 12px;
+    font-size: 14px;
+    color: #065f46;
+    margin-bottom: 16px;
+  }
+  .thank-you {
+    background: white;
+    border: 1px solid #e7e5e4;
+    border-radius: 12px;
+    padding: 32px 24px;
+    text-align: center;
+  }
+  .thank-you h1 { font-size: 24px; font-weight: 600; margin-bottom: 8px; }
+  .thank-you p { font-size: 14px; color: #57534e; margin-bottom: 24px; }
+  .thank-you .serial-card { margin: 16px auto 24px; max-width: 360px; }
+  .preview-banner {
+    background: #fef3c7;
+    border-bottom: 1px solid #fcd34d;
+    padding: 8px 16px;
+    text-align: center;
+    font-size: 12px;
+    color: #92400e;
+  }
+  .translation-note {
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 12px;
+    color: #047857;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 480px) {
+    .row { grid-template-columns: 1fr; }
+    .tab-btn { padding: 10px 10px; font-size: 13px; }
+    .serial-number { font-size: 40px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="preview-banner" id="previewBanner">Preview mode. Submissions are not saved.</div>
+
+<header>
+  <div class="header-inner">
+    <span class="app-title" id="appTitle">Land Opportunity Intake</span>
+    <div class="lang-toggle">
+      <button id="langEn" class="active" onclick="setLocale('en')">EN</button>
+      <button id="langEs" onclick="setLocale('es')">ES</button>
+    </div>
+  </div>
+</header>
+
+<main id="main"></main>
+
+<script>
+const T = {
+  en: {
+    app_title: 'Land Intake',
+    // Home
+    home_title: 'Land Intake',
+    home_subtitle: 'Pick one.',
+    home_new_title: 'New opportunity',
+    home_new_desc: 'Start a new submission. Get a 4-digit serial.',
+    home_existing_title: 'Add to existing',
+    home_existing_desc: 'Update a project using its serial.',
+    // New serial display
+    new_serial_title: 'Your serial',
+    new_serial_label: 'Serial number',
+    new_serial_help: 'Save this. We will also send it to you after you submit.',
+    new_serial_continue: 'Continue',
+    // Existing serial input
+    existing_title: 'Add to existing',
+    existing_subtitle: 'Enter your 4-digit serial.',
+    existing_label: 'Serial',
+    existing_placeholder: '0000',
+    existing_continue: 'Continue',
+    existing_invalid: 'Enter a valid 4-digit serial.',
+    forgot_serial: 'Forgot your serial?',
+    back_to_home: 'Back',
+    // Forgot serial
+    forgot_title: 'Recover your serial',
+    forgot_subtitle: 'Enter the WhatsApp or email you used. We will send your serial(s).',
+    forgot_contact_label: 'WhatsApp or email',
+    forgot_contact_placeholder: '+52 ... or you@email.com',
+    forgot_send: 'Send to me',
+    forgot_invalid: 'Enter a valid phone or email.',
+    forgot_sent_title: 'Sent',
+    forgot_sent_msg: 'If we found a match, we sent your serial(s) to {contact}. Check WhatsApp or email.',
+    forgot_picker_title: 'We found {count} projects',
+    forgot_picker_subtitle: 'Pick the one you want to update. We also sent the full list to {contact}.',
+    forgot_none_title: 'No projects found',
+    forgot_none_msg: 'We could not find any projects under {contact}. Check the number or start a new submission.',
+    project_submitted: 'Submitted',
+    project_use_this: 'Use this',
+    // Form
+    form_intro_new: 'Use any of the tabs. We merge everything.',
+    form_intro_existing: 'Updates are added to this project.',
+    serial_badge: 'Serial',
+    tab_upload: 'Upload',
+    tab_paste: 'Paste',
+    tab_form: 'Form',
+    upload_section_title: 'Upload',
+    upload_section_help: 'PDFs, Excel, screenshots, photos.',
+    upload_drop: 'Drop files or click to choose',
+    upload_supported: 'PDF, Excel, PNG, JPEG. 10 MB max, 10 files.',
+    upload_remove: 'Remove',
+    paste_section_title: 'Paste a message',
+    paste_section_help: 'WhatsApp, email, or any text.',
+    message_placeholder: 'Paste a message describing the property...',
+    process_button: 'Extract',
+    process_running: 'Reading...',
+    process_done: 'Extracted from {count} source(s).',
+    form_section_title: 'Property details',
+    form_section_title_existing: 'Add details',
+    form_section_help: 'Edit anything that looks wrong.',
+    form_section_help_existing: 'Fill in only what you want to add.',
+    section_hunter: 'Your information',
+    section_location: 'Property location',
+    section_size_price: 'Size and price',
+    section_property_details: 'Property details',
+    section_attachments: 'Notes',
+    hunter_name: 'Your name',
+    hunter_name_placeholder: 'First and last name',
+    hunter_phone: 'WhatsApp / phone',
+    hunter_email: 'Email (optional)',
+    state: 'State',
+    state_placeholder: 'Select a state',
+    municipality: 'Municipality',
+    municipality_placeholder: 'e.g. Salvatierra',
+    google_maps_link: 'Google Maps link',
+    google_maps_help: 'Leave blank to auto-generate from state and municipality.',
+    distance: 'Distance to urban center (km)',
+    land_size: 'Land size',
+    land_size_unit: 'Unit',
+    unit_ha: 'Hectares',
+    unit_m2: 'Square meters',
+    price_per_m2: 'Price per square meter (MXN)',
+    total_price: 'Total asking price (MXN, optional)',
+    ownership: 'Ownership type',
+    ownership_private: 'Private',
+    ownership_ejidal: 'Ejidal',
+    ownership_communal: 'Communal',
+    ownership_unknown: 'Unknown',
+    land_use: 'Current land use (optional)',
+    land_use_placeholder: 'e.g. agricultural, residential, vacant',
+    access: 'Access quality',
+    access_good: 'Good',
+    access_fair: 'Fair',
+    access_poor: 'Poor',
+    access_unknown: 'Unknown',
+    utilities: 'Utilities available on site',
+    util_water: 'Water',
+    util_electricity: 'Electricity',
+    util_drainage: 'Drainage',
+    util_none: 'None',
+    util_unknown: 'Unknown',
+    notes_label: 'Notes (optional)',
+    notes_placeholder: 'Anything else we should know',
+    submit: 'Submit',
+    submit_update: 'Add to project',
+    thank_you_title: 'Thanks',
+    thank_you_message: 'Got it.',
+    thank_you_update_message: 'Update added.',
+    thank_you_serial_label: 'Your serial',
+    thank_you_sent_whatsapp: 'Serial sent to your WhatsApp.',
+    thank_you_sent_email: 'Serial sent to your email.',
+    thank_you_sent_both: 'Serial sent to your WhatsApp and email.',
+    submit_again: 'Submit another',
+    return_home: 'Home',
+    preview_banner: 'Preview mode. Submissions are not saved.',
+    translation_note: 'Spanish auto-translated. Sources merged.'
+  },
+  es: {
+    app_title: 'Recepción de terrenos',
+    // Home
+    home_title: 'Recepción de terrenos',
+    home_subtitle: 'Elige una opción.',
+    home_new_title: 'Nueva oportunidad',
+    home_new_desc: 'Empieza un envío nuevo. Recibe un número de 4 dígitos.',
+    home_existing_title: 'Agregar a existente',
+    home_existing_desc: 'Actualiza un proyecto con su número de serie.',
+    // New serial display
+    new_serial_title: 'Tu número de serie',
+    new_serial_label: 'Número de serie',
+    new_serial_help: 'Guárdalo. También te lo enviaremos al enviar el formulario.',
+    new_serial_continue: 'Continuar',
+    // Existing serial input
+    existing_title: 'Agregar a existente',
+    existing_subtitle: 'Ingresa tu número de 4 dígitos.',
+    existing_label: 'Serie',
+    existing_placeholder: '0000',
+    existing_continue: 'Continuar',
+    existing_invalid: 'Ingresa un número de 4 dígitos válido.',
+    forgot_serial: '¿Olvidaste tu número?',
+    back_to_home: 'Atrás',
+    // Forgot serial
+    forgot_title: 'Recuperar tu número',
+    forgot_subtitle: 'Ingresa el WhatsApp o correo que usaste. Te enviaremos tu(s) número(s).',
+    forgot_contact_label: 'WhatsApp o correo',
+    forgot_contact_placeholder: '+52 ... o tu@correo.com',
+    forgot_send: 'Enviar',
+    forgot_invalid: 'Ingresa un teléfono o correo válido.',
+    forgot_sent_title: 'Enviado',
+    forgot_sent_msg: 'Si encontramos coincidencia, enviamos tu(s) número(s) a {contact}. Revisa WhatsApp o correo.',
+    forgot_picker_title: 'Encontramos {count} proyectos',
+    forgot_picker_subtitle: 'Elige el que quieres actualizar. También enviamos la lista a {contact}.',
+    forgot_none_title: 'No encontramos proyectos',
+    forgot_none_msg: 'No encontramos proyectos con {contact}. Verifica el número o inicia un nuevo envío.',
+    project_submitted: 'Enviado',
+    project_use_this: 'Usar este',
+    // Form
+    form_intro_new: 'Usa cualquier pestaña. Combinamos todo.',
+    form_intro_existing: 'Las actualizaciones se añaden a este proyecto.',
+    serial_badge: 'Serie',
+    tab_upload: 'Subir',
+    tab_paste: 'Pegar',
+    tab_form: 'Formulario',
+    upload_section_title: 'Subir',
+    upload_section_help: 'PDFs, Excel, capturas, fotos.',
+    upload_drop: 'Suelta archivos o haz clic',
+    upload_supported: 'PDF, Excel, PNG, JPEG. 10 MB máx, 10 archivos.',
+    upload_remove: 'Quitar',
+    paste_section_title: 'Pegar mensaje',
+    paste_section_help: 'WhatsApp, correo, o cualquier texto.',
+    message_placeholder: 'Pega un mensaje que describa el terreno...',
+    process_button: 'Extraer',
+    process_running: 'Leyendo...',
+    process_done: 'Extraído de {count} fuente(s).',
+    form_section_title: 'Detalles del terreno',
+    form_section_title_existing: 'Agregar detalles',
+    form_section_help: 'Edita lo que esté incorrecto.',
+    form_section_help_existing: 'Llena solo lo que quieras agregar.',
+    section_hunter: 'Tu información',
+    section_location: 'Ubicación del terreno',
+    section_size_price: 'Tamaño y precio',
+    section_property_details: 'Detalles del terreno',
+    section_attachments: 'Notas',
+    hunter_name: 'Tu nombre',
+    hunter_name_placeholder: 'Nombre y apellido',
+    hunter_phone: 'WhatsApp / teléfono',
+    hunter_email: 'Correo electrónico (opcional)',
+    state: 'Estado',
+    state_placeholder: 'Selecciona un estado',
+    municipality: 'Municipio',
+    municipality_placeholder: 'Ej. Salvatierra',
+    google_maps_link: 'Enlace de Google Maps',
+    google_maps_help: 'Si está vacío, lo generamos del estado y municipio.',
+    distance: 'Distancia al centro urbano (km)',
+    land_size: 'Tamaño del terreno',
+    land_size_unit: 'Unidad',
+    unit_ha: 'Hectáreas',
+    unit_m2: 'Metros cuadrados',
+    price_per_m2: 'Precio por metro cuadrado (MXN)',
+    total_price: 'Precio total solicitado (MXN, opcional)',
+    ownership: 'Tipo de propiedad',
+    ownership_private: 'Privada',
+    ownership_ejidal: 'Ejidal',
+    ownership_communal: 'Comunal',
+    ownership_unknown: 'No sé',
+    land_use: 'Uso actual del suelo (opcional)',
+    land_use_placeholder: 'Ej. agrícola, residencial, baldío',
+    access: 'Calidad de acceso',
+    access_good: 'Bueno',
+    access_fair: 'Regular',
+    access_poor: 'Malo',
+    access_unknown: 'No sé',
+    utilities: 'Servicios disponibles en el sitio',
+    util_water: 'Agua',
+    util_electricity: 'Luz',
+    util_drainage: 'Drenaje',
+    util_none: 'Ninguno',
+    util_unknown: 'No sé',
+    notes_label: 'Notas (opcional)',
+    notes_placeholder: 'Cualquier otra información',
+    submit: 'Enviar',
+    submit_update: 'Agregar al proyecto',
+    thank_you_title: 'Gracias',
+    thank_you_message: 'Recibido.',
+    thank_you_update_message: 'Actualización agregada.',
+    thank_you_serial_label: 'Tu número de serie',
+    thank_you_sent_whatsapp: 'Te enviamos tu número por WhatsApp.',
+    thank_you_sent_email: 'Te enviamos tu número por correo.',
+    thank_you_sent_both: 'Te enviamos tu número por WhatsApp y correo.',
+    submit_again: 'Enviar otra',
+    return_home: 'Inicio',
+    preview_banner: 'Vista previa. Los envíos no se guardan.',
+    translation_note: 'Español traducido automáticamente. Fuentes combinadas.'
+  }
+};
+
+const STATES = ['Aguascalientes','Baja California','Baja California Sur','Campeche','Chiapas','Chihuahua','Ciudad de México','Coahuila','Colima','Durango','Estado de México','Guanajuato','Guerrero','Hidalgo','Jalisco','Michoacán','Morelos','Nayarit','Nuevo León','Oaxaca','Puebla','Querétaro','Quintana Roo','San Luis Potosí','Sinaloa','Sonora','Tabasco','Tamaulipas','Tlaxcala','Veracruz','Yucatán','Zacatecas'];
+const UTILS = ['water','electricity','drainage','none','unknown'];
+
+// Demo data for the forgot-serial flow. Two of these are in the same municipality
+// to show how the picker disambiguates.
+const MOCK_PROJECTS = [
+  { serial: '4827', municipality: 'Salvatierra', state: 'Guanajuato', size: '5.2 ha', ownership: 'Private',  submitted: 'May 3',  note: 'next to the river' },
+  { serial: '1593', municipality: 'Salvatierra', state: 'Guanajuato', size: '2.1 ha', ownership: 'Ejidal',   submitted: 'Apr 12', note: 'corner of the highway' },
+  { serial: '9201', municipality: 'Celaya',      state: 'Guanajuato', size: '8.0 ha', ownership: 'Private',  submitted: 'Apr 1',  note: 'paved access road' }
+];
+
+// View states: 'home' | 'new_serial' | 'existing_input' | 'form' | 'thank_you'
+let view = 'home';
+// Mode within form: 'new' | 'existing'
+let mode = 'new';
+let serialNumber = '';
+let serialInputError = '';
+
+let locale = 'en';
+let activeTab = 'upload';
+let files = [];
+let messageText = '';
+let extracted = false;
+let sourceCount = 0;
+let forgotContact = '';
+let forgotError = '';
+let sentChannel = '';
+let forgotMatches = [];
+
+function tr(k) { return T[locale][k] || T.en[k] || k; }
+
+function setLocale(l) {
+  locale = l;
+  document.getElementById('langEn').classList.toggle('active', l === 'en');
+  document.getElementById('langEs').classList.toggle('active', l === 'es');
+  document.getElementById('previewBanner').textContent = tr('preview_banner');
+  document.getElementById('appTitle').textContent = tr('app_title');
+  render();
+}
+
+function generateSerial() {
+  // 4-digit number between 1000 and 9999
+  return String(Math.floor(1000 + Math.random() * 9000));
+}
+
+function goHome() {
+  view = 'home';
+  mode = 'new';
+  serialNumber = '';
+  serialInputError = '';
+  files = [];
+  messageText = '';
+  extracted = false;
+  sourceCount = 0;
+  activeTab = 'upload';
+  render();
+}
+
+function startNew() {
+  serialNumber = generateSerial();
+  mode = 'new';
+  view = 'new_serial';
+  render();
+}
+
+function startExisting() {
+  mode = 'existing';
+  view = 'existing_input';
+  serialNumber = '';
+  serialInputError = '';
+  render();
+}
+
+function continueFromNewSerial() {
+  view = 'form';
+  activeTab = 'upload';
+  render();
+}
+
+function submitExistingSerial() {
+  const input = document.getElementById('serialIn');
+  const val = (input ? input.value : '').trim();
+  if (!/^\d{4}$/.test(val)) {
+    serialInputError = tr('existing_invalid');
+    render();
+    return;
+  }
+  serialNumber = val;
+  serialInputError = '';
+  view = 'form';
+  activeTab = 'upload';
+  render();
+}
+
+function goForgot() {
+  view = 'forgot_input';
+  forgotContact = '';
+  forgotError = '';
+  render();
+}
+
+function submitForgot() {
+  const input = document.getElementById('forgotIn');
+  const val = (input ? input.value : '').trim();
+  const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+  const isPhone = /^\+?\d[\d\s\-]{6,}$/.test(val);
+  if (!isEmail && !isPhone) {
+    forgotError = tr('forgot_invalid');
+    render();
+    return;
+  }
+  forgotContact = val;
+  forgotError = '';
+  // In production: look up by phone/email in the CRM. For preview, return mock list.
+  forgotMatches = MOCK_PROJECTS.slice();
+  if (forgotMatches.length === 0) {
+    view = 'forgot_none';
+  } else if (forgotMatches.length === 1) {
+    serialNumber = forgotMatches[0].serial;
+    mode = 'existing';
+    view = 'form';
+    activeTab = 'upload';
+  } else {
+    view = 'forgot_picker';
+  }
+  render();
+}
+
+function pickProject(serial) {
+  serialNumber = serial;
+  mode = 'existing';
+  view = 'form';
+  activeTab = 'upload';
+  render();
+}
+
+function setTab(t) {
+  const msgEl = document.getElementById('msgIn');
+  if (msgEl) messageText = msgEl.value;
+  activeTab = t;
+  render();
+}
+
+function addFiles(list) {
+  for (const f of Array.from(list)) {
+    if (files.find(x => x.name === f.name && x.size === f.size)) continue;
+    files.push(f);
+  }
+  if (files.length > 10) files = files.slice(0, 10);
+  render();
+}
+
+function removeFile(idx) {
+  files.splice(idx, 1);
+  render();
+}
+
+function togglePill(btn) { btn.classList.toggle('active'); }
+
+function simulateExtract() {
+  const msgEl = document.getElementById('msgIn');
+  if (msgEl) messageText = msgEl.value;
+  sourceCount = files.length + (messageText.trim() ? 1 : 0);
+  extracted = true;
+  activeTab = 'form';
+  render();
+}
+
+function showThankYou() {
+  // Detect what contact info the hunter provided so we know what channel was used
+  const phoneEl = document.querySelector('input[type="tel"]');
+  const emailEl = document.querySelector('input[type="email"]');
+  const phoneVal = phoneEl ? phoneEl.value.replace(/[^\d]/g, '') : '';
+  const emailVal = emailEl ? emailEl.value.trim() : '';
+  const hasPhone = phoneVal.length >= 8;
+  const hasEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal);
+  if (hasPhone && hasEmail) sentChannel = 'both';
+  else if (hasPhone) sentChannel = 'whatsapp';
+  else if (hasEmail) sentChannel = 'email';
+  else sentChannel = '';
+  view = 'thank_you';
+  render();
+}
+
+function renderHome() {
+  return `
+    <div class="home-hero">
+      <h1>${tr('home_title')}</h1>
+      <p>${tr('home_subtitle')}</p>
+    </div>
+    <div class="home-cards">
+      <button type="button" class="home-card" onclick="startNew()">
+        <div class="home-card-icon">+</div>
+        <div class="home-card-content">
+          <h3>${tr('home_new_title')}</h3>
+          <p>${tr('home_new_desc')}</p>
+        </div>
+        <div class="home-card-arrow">→</div>
+      </button>
+      <button type="button" class="home-card" onclick="startExisting()">
+        <div class="home-card-icon">#</div>
+        <div class="home-card-content">
+          <h3>${tr('home_existing_title')}</h3>
+          <p>${tr('home_existing_desc')}</p>
+        </div>
+        <div class="home-card-arrow">→</div>
+      </button>
+    </div>
+  `;
+}
+
+function renderNewSerial() {
+  return `
+    <button class="back-link" onclick="goHome()">← ${tr('back_to_home')}</button>
+    <div class="page-header">
+      <h1>${tr('new_serial_title')}</h1>
+    </div>
+    <div class="serial-card">
+      <div class="serial-label">${tr('new_serial_label')}</div>
+      <div class="serial-number">${serialNumber}</div>
+      <p class="serial-help">${tr('new_serial_help')}</p>
+    </div>
+    <button class="submit-btn" onclick="continueFromNewSerial()">${tr('new_serial_continue')}</button>
+  `;
+}
+
+function renderExistingInput() {
+  return `
+    <button class="back-link" onclick="goHome()">← ${tr('back_to_home')}</button>
+    <div class="page-header">
+      <h1>${tr('existing_title')}</h1>
+      <p>${tr('existing_subtitle')}</p>
+    </div>
+    ${serialInputError ? `<div class="error-banner">${serialInputError}</div>` : ''}
+    <div class="field">
+      <label>${tr('existing_label')}</label>
+      <input type="text" id="serialIn" class="serial-input" maxlength="4" inputmode="numeric" pattern="[0-9]{4}" placeholder="${tr('existing_placeholder')}" autofocus>
+    </div>
+    <button class="submit-btn" onclick="submitExistingSerial()">${tr('existing_continue')}</button>
+    <div style="text-align:center; margin-top:16px;">
+      <button class="back-link" onclick="goForgot()">${tr('forgot_serial')}</button>
+    </div>
+  `;
+}
+
+function renderForgotInput() {
+  return `
+    <button class="back-link" onclick="startExisting()">← ${tr('back_to_home')}</button>
+    <div class="page-header">
+      <h1>${tr('forgot_title')}</h1>
+      <p>${tr('forgot_subtitle')}</p>
+    </div>
+    ${forgotError ? `<div class="error-banner">${forgotError}</div>` : ''}
+    <div class="field">
+      <label>${tr('forgot_contact_label')}</label>
+      <input type="text" id="forgotIn" placeholder="${tr('forgot_contact_placeholder')}" autofocus>
+    </div>
+    <button class="submit-btn" onclick="submitForgot()">${tr('forgot_send')}</button>
+  `;
+}
+
+function renderForgotPicker() {
+  const cards = forgotMatches.map(p => `
+    <button type="button" class="project-card" onclick="pickProject('${p.serial}')">
+      <div class="project-card-top">
+        <span class="project-card-serial">${p.serial}</span>
+        <span class="project-card-date">${tr('project_submitted')} ${p.submitted}</span>
+      </div>
+      <div class="project-card-location">${p.municipality}, ${p.state}</div>
+      <div class="project-card-meta">${p.size} • ${p.ownership}</div>
+      ${p.note ? `<div class="project-card-note">"${p.note}"</div>` : ''}
+    </button>
+  `).join('');
+  return `
+    <button class="back-link" onclick="startExisting()">← ${tr('back_to_home')}</button>
+    <div class="page-header">
+      <h1>${tr('forgot_picker_title').replace('{count}', String(forgotMatches.length))}</h1>
+      <p>${tr('forgot_picker_subtitle').replace('{contact}', forgotContact)}</p>
+    </div>
+    <div class="project-list">${cards}</div>
+  `;
+}
+
+function renderForgotNone() {
+  return `
+    <div class="thank-you">
+      <h1>${tr('forgot_none_title')}</h1>
+      <p>${tr('forgot_none_msg').replace('{contact}', forgotContact)}</p>
+      <button class="submit-btn" style="max-width:240px; margin: 0 auto;" onclick="goHome()">${tr('return_home')}</button>
+    </div>
+  `;
+}
+
+function renderTabs() {
+  const fileBadge = files.length > 0 ? `<span class="tab-badge">${files.length}</span>` : '';
+  const msgBadge = messageText.trim() ? `<span class="tab-badge">✓</span>` : '';
+  const formBadge = extracted ? `<span class="tab-badge">✓</span>` : '';
+  return `
+    <div class="tab-bar">
+      <button class="tab-btn ${activeTab === 'upload' ? 'active' : ''}" onclick="setTab('upload')">
+        ${tr('tab_upload')}${fileBadge}
+      </button>
+      <button class="tab-btn ${activeTab === 'paste' ? 'active' : ''}" onclick="setTab('paste')">
+        ${tr('tab_paste')}${msgBadge}
+      </button>
+      <button class="tab-btn ${activeTab === 'form' ? 'active' : ''}" onclick="setTab('form')">
+        ${tr('tab_form')}${formBadge}
+      </button>
+    </div>
+  `;
+}
+
+function renderUploadTab() {
+  const canProcess = files.length > 0 || messageText.trim();
+  const fileRows = files.map((f, i) => `
+    <div class="file-row">
+      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.name}</span>
+      <button type="button" class="secondary-btn" onclick="removeFile(${i})">${tr('upload_remove')}</button>
+    </div>
+  `).join('');
+  return `
+    <div class="section">
+      <div class="section-header">
+        <h2>${tr('upload_section_title')}</h2>
+        <p>${tr('upload_section_help')}</p>
+      </div>
+      <div class="dropzone" onclick="document.getElementById('fileIn').click()" ondragover="event.preventDefault()" ondrop="event.preventDefault(); addFiles(event.dataTransfer.files)">
+        <p>${tr('upload_drop')}</p>
+        <span class="small">${tr('upload_supported')}</span>
+        <input type="file" id="fileIn" multiple accept=".pdf,.xlsx,.xls,.png,.jpg,.jpeg,.webp" style="display:none" onchange="addFiles(this.files); this.value=''">
+      </div>
+      ${files.length ? `<div class="file-list">${fileRows}</div>` : ''}
+      ${canProcess ? `<button type="button" class="submit-btn" onclick="simulateExtract()">${tr('process_button')}</button>` : ''}
+    </div>
+  `;
+}
+
+function renderPasteTab() {
+  const canProcess = files.length > 0 || messageText.trim();
+  return `
+    <div class="section">
+      <div class="section-header">
+        <h2>${tr('paste_section_title')}</h2>
+        <p>${tr('paste_section_help')}</p>
+      </div>
+      <textarea id="msgIn" rows="10" placeholder="${tr('message_placeholder')}">${messageText}</textarea>
+      ${canProcess ? `<button type="button" class="submit-btn" onclick="simulateExtract()" style="margin-top:16px">${tr('process_button')}</button>` : ''}
+    </div>
+  `;
+}
+
+function renderFormTab() {
+  const isExisting = mode === 'existing';
+  const stateOptions = STATES.map(s => `<option value="${s}">${s}</option>`).join('');
+  const utilPills = UTILS.map(u => `<button type="button" class="pill" onclick="togglePill(this)">${tr('util_' + u)}</button>`).join('');
+  const successBanner = extracted ? `<div class="extract-success">${tr('process_done').replace('{count}', String(sourceCount))}</div>` : '';
+  const titleKey = isExisting ? 'form_section_title_existing' : 'form_section_title';
+  const helpKey = isExisting ? 'form_section_help_existing' : 'form_section_help';
+  const submitKey = isExisting ? 'submit_update' : 'submit';
+  const req = isExisting ? '' : '<span class="req">*</span>';
+  const reqAttr = isExisting ? '' : 'required';
+
+  return `
+    <div class="section">
+      <div class="section-header">
+        <h2>${tr(titleKey)}</h2>
+        <p>${tr(helpKey)}</p>
+      </div>
+      ${successBanner}
+
+      <form onsubmit="event.preventDefault(); showThankYou();">
+        <div class="section">
+          <div class="section-header"><h2 style="font-size:14px">${tr('section_hunter')}</h2></div>
+          <div class="field"><label>${tr('hunter_name')}${req}</label><input type="text" ${reqAttr} placeholder="${tr('hunter_name_placeholder')}"></div>
+          <div class="field"><label>${tr('hunter_phone')}${req}</label><input type="tel" ${reqAttr} value="+52 "></div>
+          <div class="field"><label>${tr('hunter_email')}</label><input type="email"></div>
+        </div>
+
+        <div class="section">
+          <div class="section-header"><h2 style="font-size:14px">${tr('section_location')}</h2></div>
+          <div class="field"><label>${tr('state')}${req}</label><select ${reqAttr}><option value="">${tr('state_placeholder')}</option>${stateOptions}</select></div>
+          <div class="field"><label>${tr('municipality')}${req}</label><input type="text" ${reqAttr} placeholder="${tr('municipality_placeholder')}"></div>
+          <div class="field"><label>${tr('google_maps_link')}</label><input type="url" placeholder="https://maps.google.com/..."><span class="help">${tr('google_maps_help')}</span></div>
+          <div class="field"><label>${tr('distance')}</label><input type="number" step="0.1" min="0"></div>
+        </div>
+
+        <div class="section">
+          <div class="section-header"><h2 style="font-size:14px">${tr('section_size_price')}</h2></div>
+          <div class="row">
+            <div class="field"><label>${tr('land_size')}${req}</label><input type="number" step="0.01" min="0" ${reqAttr}></div>
+            <div class="field"><label>${tr('land_size_unit')}</label><select><option value="ha">${tr('unit_ha')}</option><option value="m2">${tr('unit_m2')}</option></select></div>
+          </div>
+          <div class="field"><label>${tr('price_per_m2')}${req}</label><input type="number" step="0.01" min="0" ${reqAttr}></div>
+          <div class="field"><label>${tr('total_price')}</label><input type="number" step="1" min="0"></div>
+        </div>
+
+        <div class="section">
+          <div class="section-header"><h2 style="font-size:14px">${tr('section_property_details')}</h2></div>
+          <div class="field"><label>${tr('ownership')}${req}</label><select><option>${tr('ownership_private')}</option><option>${tr('ownership_ejidal')}</option><option>${tr('ownership_communal')}</option><option>${tr('ownership_unknown')}</option></select></div>
+          <div class="field"><label>${tr('land_use')}</label><input type="text" placeholder="${tr('land_use_placeholder')}"></div>
+          <div class="field"><label>${tr('access')}${req}</label><select><option>${tr('access_good')}</option><option>${tr('access_fair')}</option><option>${tr('access_poor')}</option><option>${tr('access_unknown')}</option></select></div>
+          <div class="field"><label>${tr('utilities')}</label><div class="pill-group">${utilPills}</div></div>
+        </div>
+
+        <div class="section">
+          <div class="section-header"><h2 style="font-size:14px">${tr('section_attachments')}</h2></div>
+          <div class="field"><label>${tr('notes_label')}</label><textarea placeholder="${tr('notes_placeholder')}"></textarea></div>
+        </div>
+
+        <button type="submit" class="submit-btn">${tr(submitKey)}</button>
+      </form>
+    </div>
+  `;
+}
+
+function renderForm() {
+  const introKey = mode === 'existing' ? 'form_intro_existing' : 'form_intro_new';
+  return `
+    <button class="back-link" onclick="goHome()">← ${tr('back_to_home')}</button>
+    <div class="page-header">
+      <h1>${mode === 'existing' ? tr('home_existing_title') : tr('home_new_title')}</h1>
+      <p>${tr(introKey)}</p>
+    </div>
+
+    <div class="serial-card" style="padding: 16px; margin-bottom: 16px;">
+      <div class="serial-label" style="margin-bottom: 4px;">${tr('serial_badge')}</div>
+      <div class="serial-number" style="font-size: 28px; margin-bottom: 0;">${serialNumber}</div>
+    </div>
+
+    <div class="translation-note">${tr('translation_note')}</div>
+
+    ${renderTabs()}
+
+    ${activeTab === 'upload' ? renderUploadTab() : ''}
+    ${activeTab === 'paste' ? renderPasteTab() : ''}
+    ${activeTab === 'form' ? renderFormTab() : ''}
+  `;
+}
+
+function renderThankYou() {
+  const isExisting = mode === 'existing';
+  const msgKey = isExisting ? 'thank_you_update_message' : 'thank_you_message';
+  const serialLabel = isExisting ? tr('serial_badge') : tr('thank_you_serial_label');
+  let sentMsg = '';
+  if (!isExisting && sentChannel === 'both') sentMsg = tr('thank_you_sent_both');
+  else if (!isExisting && sentChannel === 'whatsapp') sentMsg = tr('thank_you_sent_whatsapp');
+  else if (!isExisting && sentChannel === 'email') sentMsg = tr('thank_you_sent_email');
+  return `
+    <div class="thank-you">
+      <h1>${tr('thank_you_title')}</h1>
+      <p>${tr(msgKey)}</p>
+      <div class="serial-card">
+        <div class="serial-label">${serialLabel}</div>
+        <div class="serial-number">${serialNumber}</div>
+        ${sentMsg ? `<p class="serial-help">${sentMsg}</p>` : ''}
+      </div>
+      <button class="submit-btn" style="max-width:240px; margin: 0 auto;" onclick="goHome()">${tr('return_home')}</button>
+    </div>
+  `;
+}
+
+function render() {
+  let html = '';
+  if (view === 'home') html = renderHome();
+  else if (view === 'new_serial') html = renderNewSerial();
+  else if (view === 'existing_input') html = renderExistingInput();
+  else if (view === 'forgot_input') html = renderForgotInput();
+  else if (view === 'forgot_picker') html = renderForgotPicker();
+  else if (view === 'forgot_none') html = renderForgotNone();
+  else if (view === 'form') html = renderForm();
+  else if (view === 'thank_you') html = renderThankYou();
+  document.getElementById('main').innerHTML = html;
+}
+
+render();
+</script>
+
+</body>
+</html>
