@@ -689,6 +689,7 @@ function goHome() {
   extracted = false;
   sourceCount = 0;
   activeTab = 'upload';
+  notionPageUrl = '';
   render();
 }
 
@@ -816,6 +817,81 @@ function showThankYou() {
   else sentChannel = '';
   view = 'thank_you';
   render();
+}
+
+let notionPageUrl = '';
+
+async function submitToBackend(formEl) {
+  const btn = document.getElementById('submitBtn');
+  const errBox = document.getElementById('submitError');
+  if (errBox) { errBox.style.display = 'none'; errBox.textContent = ''; }
+  if (btn) { btn.disabled = true; btn.dataset.orig = btn.textContent; btn.textContent = locale === 'es' ? 'Enviando...' : 'Submitting...'; }
+
+  // Collect form fields
+  const fd = new FormData(formEl);
+  const get = (k) => {
+    const v = fd.get(k);
+    return v == null ? '' : String(v).trim();
+  };
+  const num = (k) => {
+    const v = get(k);
+    if (v === '') return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  };
+
+  // Normalize land size to hectares
+  const rawSize = num('landSize');
+  const sizeUnit = get('landSizeUnit') || 'ha';
+  const landSizeHa = rawSize == null ? null : (sizeUnit === 'm2' ? rawSize / 10000 : rawSize);
+
+  // Collect selected utility pills
+  const utilDisplayMap = { water: 'Water', electricity: 'Electricity', drainage: 'Drainage', none: 'None', unknown: 'Unknown' };
+  const utilities = Array.from(document.querySelectorAll('.pill.active[data-util]'))
+    .map(el => utilDisplayMap[el.dataset.util])
+    .filter(Boolean);
+
+  const payload = {
+    mode: mode === 'existing' ? 'existing' : 'new',
+    serial: serialNumber,
+    form: {
+      hunterName:  get('hunterName'),
+      hunterPhone: get('hunterPhone'),
+      hunterEmail: get('hunterEmail'),
+      state:        get('state'),
+      municipality: get('municipality'),
+      googleMaps:   get('googleMaps'),
+      distance:     num('distance'),
+      landSizeHa,
+      pricePerM2:   num('pricePerM2'),
+      totalPrice:   num('totalPrice'),
+      ownership:    get('ownership'),
+      landUse:      get('landUse'),
+      utilities,
+      hunterNotes:  get('hunterNotes'),
+    },
+    message: (messageText || '').trim() || null,
+  };
+
+  try {
+    const res = await fetch('/api/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) {
+      throw new Error(data.error || `HTTP ${res.status}`);
+    }
+    notionPageUrl = data.url || '';
+    showThankYou();
+  } catch (err) {
+    if (errBox) {
+      errBox.style.display = 'block';
+      errBox.textContent = (locale === 'es' ? 'Error al enviar: ' : 'Submit failed: ') + (err.message || err);
+    }
+    if (btn) { btn.disabled = false; btn.textContent = btn.dataset.orig || (locale === 'es' ? 'Enviar' : 'Submit'); }
+  }
 }
 
 function renderHome() {
@@ -988,7 +1064,7 @@ function renderPasteTab() {
 function renderFormTab() {
   const isExisting = mode === 'existing';
   const stateOptions = STATES.map(s => `<option value="${s}">${s}</option>`).join('');
-  const utilPills = UTILS.map(u => `<button type="button" class="pill" onclick="togglePill(this)">${tr('util_' + u)}</button>`).join('');
+  const utilPills = UTILS.map(u => `<button type="button" class="pill" data-util="${u}" onclick="togglePill(this)">${tr('util_' + u)}</button>`).join('');
   const successBanner = extracted ? `<div class="extract-success">${tr('process_done').replace('{count}', String(sourceCount))}</div>` : '';
   const titleKey = isExisting ? 'form_section_title_existing' : 'form_section_title';
   const helpKey = isExisting ? 'form_section_help_existing' : 'form_section_help';
@@ -1004,46 +1080,47 @@ function renderFormTab() {
       </div>
       ${successBanner}
 
-      <form onsubmit="event.preventDefault(); showThankYou();">
+      <form id="intakeForm" onsubmit="event.preventDefault(); submitToBackend(this);">
         <div class="section">
           <div class="section-header"><h2 style="font-size:14px">${tr('section_hunter')}</h2></div>
-          <div class="field"><label>${tr('hunter_name')}${req}</label><input type="text" ${reqAttr} placeholder="${tr('hunter_name_placeholder')}"></div>
-          <div class="field"><label>${tr('hunter_phone')}${req}</label><input type="tel" ${reqAttr} value="+52 "></div>
-          <div class="field"><label>${tr('hunter_email')}</label><input type="email"></div>
+          <div class="field"><label>${tr('hunter_name')}${req}</label><input type="text" name="hunterName" ${reqAttr} placeholder="${tr('hunter_name_placeholder')}"></div>
+          <div class="field"><label>${tr('hunter_phone')}${req}</label><input type="tel" name="hunterPhone" ${reqAttr} value="+52 "></div>
+          <div class="field"><label>${tr('hunter_email')}</label><input type="email" name="hunterEmail"></div>
         </div>
 
         <div class="section">
           <div class="section-header"><h2 style="font-size:14px">${tr('section_location')}</h2></div>
-          <div class="field"><label>${tr('state')}${req}</label><select ${reqAttr}><option value="">${tr('state_placeholder')}</option>${stateOptions}</select></div>
-          <div class="field"><label>${tr('municipality')}${req}</label><input type="text" ${reqAttr} placeholder="${tr('municipality_placeholder')}"></div>
-          <div class="field"><label>${tr('google_maps_link')}</label><input type="url" placeholder="https://maps.google.com/..."><span class="help">${tr('google_maps_help')}</span></div>
-          <div class="field"><label>${tr('distance')}</label><input type="number" step="0.1" min="0"></div>
+          <div class="field"><label>${tr('state')}${req}</label><select name="state" ${reqAttr}><option value="">${tr('state_placeholder')}</option>${stateOptions}</select></div>
+          <div class="field"><label>${tr('municipality')}${req}</label><input type="text" name="municipality" ${reqAttr} placeholder="${tr('municipality_placeholder')}"></div>
+          <div class="field"><label>${tr('google_maps_link')}</label><input type="url" name="googleMaps" placeholder="https://maps.google.com/..."><span class="help">${tr('google_maps_help')}</span></div>
+          <div class="field"><label>${tr('distance')}</label><input type="number" name="distance" step="0.1" min="0"></div>
         </div>
 
         <div class="section">
           <div class="section-header"><h2 style="font-size:14px">${tr('section_size_price')}</h2></div>
           <div class="row">
-            <div class="field"><label>${tr('land_size')}${req}</label><input type="number" step="0.01" min="0" ${reqAttr}></div>
-            <div class="field"><label>${tr('land_size_unit')}</label><select><option value="ha">${tr('unit_ha')}</option><option value="m2">${tr('unit_m2')}</option></select></div>
+            <div class="field"><label>${tr('land_size')}${req}</label><input type="number" name="landSize" step="0.01" min="0" ${reqAttr}></div>
+            <div class="field"><label>${tr('land_size_unit')}</label><select name="landSizeUnit"><option value="ha">${tr('unit_ha')}</option><option value="m2">${tr('unit_m2')}</option></select></div>
           </div>
-          <div class="field"><label>${tr('price_per_m2')}${req}</label><input type="number" step="0.01" min="0" ${reqAttr}></div>
-          <div class="field"><label>${tr('total_price')}</label><input type="number" step="1" min="0"></div>
+          <div class="field"><label>${tr('price_per_m2')}${req}</label><input type="number" name="pricePerM2" step="0.01" min="0" ${reqAttr}></div>
+          <div class="field"><label>${tr('total_price')}</label><input type="number" name="totalPrice" step="1" min="0"></div>
         </div>
 
         <div class="section">
           <div class="section-header"><h2 style="font-size:14px">${tr('section_property_details')}</h2></div>
-          <div class="field"><label>${tr('ownership')}${req}</label><select><option>${tr('ownership_private')}</option><option>${tr('ownership_ejidal')}</option><option>${tr('ownership_communal')}</option><option>${tr('ownership_unknown')}</option></select></div>
-          <div class="field"><label>${tr('land_use')}</label><input type="text" placeholder="${tr('land_use_placeholder')}"></div>
-          <div class="field"><label>${tr('access')}${req}</label><select><option>${tr('access_good')}</option><option>${tr('access_fair')}</option><option>${tr('access_poor')}</option><option>${tr('access_unknown')}</option></select></div>
+          <div class="field"><label>${tr('ownership')}${req}</label><select name="ownership"><option value="Private">${tr('ownership_private')}</option><option value="Ejido">${tr('ownership_ejidal')}</option><option value="Communal">${tr('ownership_communal')}</option><option value="Unknown">${tr('ownership_unknown')}</option></select></div>
+          <div class="field"><label>${tr('land_use')}</label><input type="text" name="landUse" placeholder="${tr('land_use_placeholder')}"></div>
+          <div class="field"><label>${tr('access')}${req}</label><select name="access"><option>${tr('access_good')}</option><option>${tr('access_fair')}</option><option>${tr('access_poor')}</option><option>${tr('access_unknown')}</option></select></div>
           <div class="field"><label>${tr('utilities')}</label><div class="pill-group">${utilPills}</div></div>
         </div>
 
         <div class="section">
           <div class="section-header"><h2 style="font-size:14px">${tr('section_attachments')}</h2></div>
-          <div class="field"><label>${tr('notes_label')}</label><textarea placeholder="${tr('notes_placeholder')}"></textarea></div>
+          <div class="field"><label>${tr('notes_label')}</label><textarea name="hunterNotes" placeholder="${tr('notes_placeholder')}"></textarea></div>
         </div>
 
-        <button type="submit" class="submit-btn">${tr(submitKey)}</button>
+        <button type="submit" class="submit-btn" id="submitBtn">${tr(submitKey)}</button>
+        <div id="submitError" style="display:none; margin-top:12px;" class="error-banner"></div>
       </form>
     </div>
   `;
