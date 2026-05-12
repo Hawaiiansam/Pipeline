@@ -13,8 +13,8 @@ const NOTION_VERSION = '2022-06-28';
 const PROJECTS_DATABASE_ID = '2ff081ea37154987b3d68491451553ae';
 
 // Env var lookup that tolerates either casing in Vercel.
-const NOTION_KEY    = NOTION_KEY    || process.env.Notion_API_Key    || '';
-const ANTHROPIC_KEY = ANTHROPIC_KEY || process.env.Anthropic_API_Key || '';
+const NOTION_KEY    = process.env.NOTION_API_KEY    || process.env.Notion_API_Key    || '';
+const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY || process.env.Anthropic_API_Key || '';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
