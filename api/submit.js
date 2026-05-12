@@ -12,6 +12,10 @@ const NOTION_API_BASE = 'https://api.notion.com/v1';
 const NOTION_VERSION = '2022-06-28';
 const PROJECTS_DATABASE_ID = '2ff081ea37154987b3d68491451553ae';
 
+// Env var lookup that tolerates either casing in Vercel.
+const NOTION_KEY    = NOTION_KEY    || process.env.Notion_API_Key    || '';
+const ANTHROPIC_KEY = ANTHROPIC_KEY || process.env.Anthropic_API_Key || '';
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -19,7 +23,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'method not allowed' });
 
-  if (!process.env.NOTION_API_KEY) {
+  if (!NOTION_KEY) {
     return res.status(500).json({ error: 'Server is missing NOTION_API_KEY.' });
   }
 
@@ -39,7 +43,7 @@ export default async function handler(req, res) {
 
     // Optional: enrich form with extracted data from pasted message.
     // Form fields always win; extracted only fills in blanks.
-    if (message && process.env.ANTHROPIC_API_KEY) {
+    if (message && ANTHROPIC_KEY) {
       try {
         const extracted = await extractFromMessage(message);
         for (const [k, v] of Object.entries(extracted)) {
@@ -80,7 +84,7 @@ async function notionFetch(path, options = {}) {
   const r = await fetch(url, {
     ...options,
     headers: {
-      'Authorization': `Bearer ${process.env.NOTION_API_KEY}`,
+      'Authorization': `Bearer ${NOTION_KEY}`,
       'Notion-Version': NOTION_VERSION,
       'Content-Type': 'application/json',
       ...(options.headers || {}),
@@ -214,7 +218,7 @@ async function extractFromMessage(text) {
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
-      'x-api-key': process.env.ANTHROPIC_API_KEY,
+      'x-api-key': ANTHROPIC_KEY,
       'anthropic-version': '2023-06-01',
       'Content-Type': 'application/json',
     },
