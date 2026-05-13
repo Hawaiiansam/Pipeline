@@ -851,15 +851,15 @@ async function submitToBackend(formEl) {
 
   // Read selected files into base64 for the payload. Cap total raw size at
   // ~3MB so the JSON body (after ~33% base64 inflation) stays under Vercel's 4.5MB limit.
-  const MAX_TOTAL_BYTES = 3 * 1024 * 1024;
+  const MAX_TOTAL_BYTES = 4 * 1024 * 1024;
   let totalBytes = 0;
   for (const f of files) totalBytes += f.size || 0;
   if (totalBytes > MAX_TOTAL_BYTES) {
     if (errBox) {
       errBox.style.display = 'block';
       errBox.textContent = (locale === 'es'
-        ? 'Archivos demasiado grandes. Total máximo: 3 MB.'
-        : 'Files are too large. Max total: 3 MB.');
+        ? 'Archivos demasiado grandes. Total máximo: 4 MB.'
+        : 'Files are too large. Max total: 4 MB.');
     }
     if (btn) { btn.disabled = false; btn.textContent = btn.dataset.orig || (locale === 'es' ? 'Enviar' : 'Submit'); }
     return;
