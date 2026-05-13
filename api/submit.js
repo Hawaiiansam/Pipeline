@@ -63,6 +63,18 @@ export default async function handler(req, res) {
     // Upload any files to Notion in parallel
     const fileUploads = await uploadFiles(files);
 
+    // Optional: extract structured fields from uploaded files (PDFs, photos)
+    if (Array.isArray(files) && files.length > 0 && ANTHROPIC_KEY) {
+      try {
+        const extracted = await extractFromFiles(files);
+        for (const [k, v] of Object.entries(extracted)) {
+          if (form[k] == null || form[k] === '') form[k] = v;
+        }
+      } catch (err) {
+        console.error('file extraction failed (non-fatal):', err.message);
+      }
+    }
+
     if (mode === 'existing') {
       const result = await appendToExistingProject(serial, form, message, fileUploads);
       return res.status(200).json({ ok: true, ...result });
@@ -304,6 +316,55 @@ async function appendToExistingProject(serial, form, message, fileUploads) {
 }
 
 // --- Claude extraction ---
+
+async function extractFromFiles(files) {
+  const content = [];
+  for (const f of files) {
+    if (!f || !f.data) continue;
+    const cleanB64 = String(f.data).replace(/^data:[^;]+;base64,/, '');
+    const mt = (f.type || '').toLowerCase();
+    if (mt.startsWith('image/')) {
+      content.push({ type: 'image', source: { type: 'base64', media_type: mt, data: cleanB64 } });
+    } else if (mt === 'application/pdf' || /\.pdf$/i.test(f.name || '')) {
+      content.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: cleanB64 } });
+    }
+  }
+  if (content.length === 0) return {};
+  content.push({ type: 'text', text: 'Extract structured real estate fields from the attached documents and photos. Output ONLY a JSON object.' });
+
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': ANTHROPIC_KEY,
+      'anthropic-version': '2023-06-01',
+      'anthropic-beta': 'pdfs-2024-09-25',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1024,
+      system: [
+        'You extract real estate fields from documents and photos of Mexican parcels.',
+        'Output ONLY a JSON object. Use null for unknown fields. Never invent.',
+        'Fields: hunterName, hunterPhone, hunterEmail,',
+        'state (full Mexican state name in Spanish, e.g. "Guanajuato"),',
+        'municipality, googleMaps (URL), distance (km, number),',
+        'landSizeHa (hectares, number), totalPrice (MXN, number),',
+        'ownership (one of: Private, Ejido, Communal, Unknown), landUse,',
+        'utilities (array, subset of: Water, Electricity, Drainage, None, Unknown).',
+      ].join(' '),
+      messages: [{ role: 'user', content }],
+    }),
+  });
+  if (!r.ok) {
+    const t = await r.text();
+    throw new Error(`Anthropic ${r.status}: ${t.slice(0, 200)}`);
+  }
+  const data = await r.json();
+  const responseText = (data.content?.[0]?.text || '{}').trim();
+  const jsonText = responseText.replace(/^```json\s*/, '').replace(/```\s*$/, '').trim();
+  try { return JSON.parse(jsonText); } catch { return {}; }
+}
 
 async function extractFromMessage(text) {
   const r = await fetch('https://api.anthropic.com/v1/messages', {
