@@ -331,7 +331,32 @@ async function extractFromFiles(files) {
     }
   }
   if (content.length === 0) return {};
-  content.push({ type: 'text', text: 'Extract structured real estate fields from the attached documents and photos. Output ONLY a JSON object.' });
+  content.push({ type: 'text', text: 'Extract property fields from the attached documents. Output ONLY a JSON object.' });
+
+  const sys = [
+    'You extract real estate fields from photos and PDFs describing Mexican land parcels.',
+    'Documents may be in Spanish or English. Common formats: property evaluation checklists (¿Cumple? Si/No tables), listing photos, technical sheets (FICHA TECNICA), WhatsApp screenshots, brochures.',
+    'Output ONLY a JSON object. Use null for fields you cannot find with confidence. Never invent.',
+    '',
+    'Fields:',
+    '- hunterName, hunterPhone, hunterEmail (the person submitting; usually NOT in the property doc; leave null)',
+    '- state: full Mexican state name in Spanish. Valid options: Aguascalientes, Baja California, Baja California Sur, Campeche, Chiapas, Chihuahua, Ciudad de México, Coahuila, Colima, Durango, Estado de México, Guanajuato, Guerrero, Hidalgo, Jalisco, Michoacán, Morelos, Nayarit, Nuevo León, Oaxaca, Puebla, Querétaro, Quintana Roo, San Luis Potosí, Sinaloa, Sonora, Tabasco, Tamaulipas, Tlaxcala, Veracruz, Yucatán, Zacatecas',
+    '- municipality: e.g. Zapotlán de Juárez, Salvatierra',
+    '- googleMaps: a Maps URL if present. If only coordinates in DMS are shown (e.g. 19°57203.2"N 98°52215.8"W), convert to decimal and build https://maps.google.com/?q=LAT,LON',
+    '- distance: distance to nearest urban center in km (number only)',
+    '- landSizeHa: parcel size in hectares (1 ha = 10000 m²; convert if needed)',
+    '- totalPrice: full asking price in MXN (number only, no commas/symbols)',
+    '- pricePerM2: price per square meter in MXN (number only)',
+    '- ownership: one of Private | Ejido | Communal | Unknown. Mapping: Privado/Particular->Private, Ejidal/Ejido->Ejido, Comunal->Communal',
+    '- landUse: e.g. Habitacional, Agrícola, Comercial, Industrial, Mixto',
+    '- utilities: array, subset of [Water, Electricity, Drainage, None, Unknown]. Mapping: agua->Water, luz/electricidad/corriente->Electricity, drenaje->Drainage',
+    '',
+    'Tips:',
+    '- Evaluation sheets often have a "Cumple?" Si/No column AND an "Observaciones" column. The Observaciones column usually holds the actual VALUE (e.g. "Es un predio de 7.9 hectáreas" -> landSizeHa=7.9). Always read both columns.',
+    '- If you see "$1,500 por m2" -> pricePerM2=1500. If you see "$118,500,000 pesos" -> totalPrice=118500000.',
+    '- If you see 79,000 m2 -> landSizeHa=7.9 (divide by 10000).',
+    '- Cross-check: if you find pricePerM2 and landSizeHa, totalPrice should be pricePerM2 * landSizeHa * 10000. Use this to validate.',
+  ].join('\n');
 
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -342,18 +367,9 @@ async function extractFromFiles(files) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1024,
-      system: [
-        'You extract real estate fields from documents and photos of Mexican parcels.',
-        'Output ONLY a JSON object. Use null for unknown fields. Never invent.',
-        'Fields: hunterName, hunterPhone, hunterEmail,',
-        'state (full Mexican state name in Spanish, e.g. "Guanajuato"),',
-        'municipality, googleMaps (URL), distance (km, number),',
-        'landSizeHa (hectares, number), totalPrice (MXN, number),',
-        'ownership (one of: Private, Ejido, Communal, Unknown), landUse,',
-        'utilities (array, subset of: Water, Electricity, Drainage, None, Unknown).',
-      ].join(' '),
+      model: 'claude-sonnet-4-6',
+      max_tokens: 2048,
+      system: sys,
       messages: [{ role: 'user', content }],
     }),
   });
@@ -366,7 +382,6 @@ async function extractFromFiles(files) {
   const jsonText = responseText.replace(/^```json\s*/, '').replace(/```\s*$/, '').trim();
   try { return JSON.parse(jsonText); } catch { return {}; }
 }
-
 async function extractFromMessage(text) {
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
