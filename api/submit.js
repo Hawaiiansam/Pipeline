@@ -40,6 +40,21 @@ export default async function handler(req, res) {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
     const { mode, serial, form, message, files } = body;
 
+    // Preview mode: return extracted JSON without saving to Notion.
+    if (body.preview === true) {
+      let fromMessage = {};
+      let fromFiles = {};
+      if (message && ANTHROPIC_KEY) {
+        try { fromMessage = await extractFromMessage(message); }
+        catch (e) { console.error('preview msg extract:', e.message); }
+      }
+      if (Array.isArray(files) && files.length > 0 && ANTHROPIC_KEY) {
+        try { fromFiles = await extractFromFiles(files); }
+        catch (e) { console.error('preview file extract:', e.message); }
+      }
+      return res.status(200).json({ ok: true, extracted: { ...fromMessage, ...fromFiles } });
+    }
+
     if (!serial || !/^\d{4}$/.test(serial)) {
       return res.status(400).json({ error: 'serial must be a 4-digit string' });
     }
