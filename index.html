@@ -451,10 +451,12 @@ const T = {
     paste_section_title: 'Paste a message',
     paste_section_help: 'WhatsApp, email, or any text.',
     message_placeholder: 'Paste a message describing the property...',
-    process_button: 'Extract',
+    process_button: 'Process',
     process_running: 'Reading...',
     process_done: 'Extracted from {count} source(s).',
     form_section_title: 'Property details',
+    review_title: 'Review extracted details',
+    review_help: 'We pulled this from your uploads. Edit anything that looks wrong, then submit.',
     form_section_title_existing: 'Add details',
     form_section_help: 'Edit anything that looks wrong.',
     form_section_help_existing: 'Fill in only what you want to add.',
@@ -567,10 +569,12 @@ const T = {
     paste_section_title: 'Pegar mensaje',
     paste_section_help: 'WhatsApp, correo, o cualquier texto.',
     message_placeholder: 'Pega un mensaje que describa el terreno...',
-    process_button: 'Extraer',
+    process_button: 'Procesar',
     process_running: 'Leyendo...',
     process_done: 'Extraído de {count} fuente(s).',
     form_section_title: 'Detalles del terreno',
+    review_title: 'Revisar detalles extraídos',
+    review_help: 'Esto sale de tus archivos. Edita lo que esté incorrecto, luego envía.',
     form_section_title_existing: 'Agregar detalles',
     form_section_help: 'Edita lo que esté incorrecto.',
     form_section_help_existing: 'Llena solo lo que quieras agregar.',
@@ -660,6 +664,7 @@ let forgotContact = '';
 let forgotError = '';
 let sentChannel = '';
 let forgotMatches = [];
+let extractedData = {};
 
 function tr(k) { return T[locale][k] || T.en[k] || k; }
 
@@ -688,6 +693,7 @@ function goHome() {
   sourceCount = 0;
   activeTab = 'upload';
   notionPageUrl = '';
+  extractedData = {};
   render();
 }
 
@@ -792,14 +798,54 @@ function removeFile(idx) {
 
 function togglePill(btn) { btn.classList.toggle('active'); }
 
-function simulateExtract() {
+async function processExtraction() {
   const msgEl = document.getElementById('msgIn');
   if (msgEl) messageText = msgEl.value;
-  sourceCount = files.length + (messageText.trim() ? 1 : 0);
-  extracted = true;
-  activeTab = 'form';
-  render();
+  if (files.length === 0 && !messageText.trim()) return;
+
+  const MAX_TOTAL_BYTES = 4 * 1024 * 1024;
+  let totalBytes = 0;
+  for (const f of files) totalBytes += f.size || 0;
+  if (totalBytes > MAX_TOTAL_BYTES) {
+    alert(locale === 'es' ? 'Archivos demasiado grandes. Total máximo: 4 MB.' : 'Files are too large. Max total: 4 MB.');
+    return;
+  }
+
+  const readAsDataUrl = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload  = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+
+  const btns = document.querySelectorAll('button[onclick="processExtraction()"]');
+  btns.forEach(b => { b.disabled = true; b.dataset.orig = b.textContent; b.textContent = tr('process_running'); });
+
+  try {
+    const filesPayload = [];
+    for (const f of files) {
+      const data = await readAsDataUrl(f);
+      filesPayload.push({ name: f.name, type: f.type || '', size: f.size || 0, data });
+    }
+    const res = await fetch('/api/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ preview: true, files: filesPayload, message: (messageText || '').trim() || null }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) throw new Error(data.error || ('HTTP ' + res.status));
+    extractedData = data.extracted || {};
+    sourceCount = files.length + (messageText.trim() ? 1 : 0);
+    extracted = true;
+    activeTab = 'form';
+    render();
+  } catch (err) {
+    alert((locale === 'es' ? 'Error al procesar: ' : 'Processing failed: ') + (err.message || err));
+    btns.forEach(b => { b.disabled = false; b.textContent = b.dataset.orig || tr('process_button'); });
+  }
 }
+
+function simulateExtract() { processExtraction(); }
 
 function showThankYou() {
   // Detect what contact info the hunter provided so we know what channel was used
@@ -1074,7 +1120,7 @@ function renderUploadTab() {
         <input type="file" id="fileIn" multiple accept=".pdf,.xlsx,.xls,.png,.jpg,.jpeg,.webp" style="display:none" onchange="addFiles(this.files); this.value=''">
       </div>
       ${files.length ? `<div class="file-list">${fileRows}</div>` : ''}
-      ${canProcess ? `<button type="button" class="submit-btn" onclick="simulateExtract()">${tr('process_button')}</button>` : ''}
+      ${canProcess ? `<button type="button" class="submit-btn" onclick="processExtraction()">${tr('process_button')}</button>` : ''}
     </div>
   `;
 }
@@ -1088,22 +1134,34 @@ function renderPasteTab() {
         <p>${tr('paste_section_help')}</p>
       </div>
       <textarea id="msgIn" rows="10" placeholder="${tr('message_placeholder')}">${messageText}</textarea>
-      ${canProcess ? `<button type="button" class="submit-btn" onclick="simulateExtract()" style="margin-top:16px">${tr('process_button')}</button>` : ''}
+      ${canProcess ? `<button type="button" class="submit-btn" onclick="processExtraction()" style="margin-top:16px">${tr('process_button')}</button>` : ''}
     </div>
   `;
 }
 
 function renderFormTab() {
   const isExisting = mode === 'existing';
-  const stateOptions = STATES.map(s => `<option value="${s}">${s}</option>`).join('');
-  const utilPills = UTILS.map(u => `<button type="button" class="pill" data-util="${u}" onclick="togglePill(this)">${tr('util_' + u)}</button>`).join('');
+  const v = (k) => {
+    const x = extractedData[k];
+    if (x == null) return '';
+    return String(x);
+  };
+  const stateOptions = STATES.map(s => `<option value="${s}" ${extractedData.state === s ? 'selected' : ''}>${s}</option>`).join('');
+  const utilDisp = { water: 'Water', electricity: 'Electricity', drainage: 'Drainage', none: 'None', unknown: 'Unknown' };
+  const utilPills = UTILS.map(u => {
+    const isActive = Array.isArray(extractedData.utilities) && extractedData.utilities.includes(utilDisp[u]);
+    return `<button type="button" class="pill ${isActive ? 'active' : ''}" data-util="${u}" onclick="togglePill(this)">${tr('util_' + u)}</button>`;
+  }).join('');
   const successBanner = extracted ? `<div class="extract-success">${tr('process_done').replace('{count}', String(sourceCount))}</div>` : '';
-  const titleKey = isExisting ? 'form_section_title_existing' : 'form_section_title';
-  const helpKey = isExisting ? 'form_section_help_existing' : 'form_section_help';
+  let titleKey, helpKey;
+  if (isExisting) { titleKey = 'form_section_title_existing'; helpKey = 'form_section_help_existing'; }
+  else if (extracted) { titleKey = 'review_title'; helpKey = 'review_help'; }
+  else { titleKey = 'form_section_title'; helpKey = 'form_section_help'; }
   const submitKey = isExisting ? 'submit_update' : 'submit';
   const req = isExisting ? '' : '<span class="req">*</span>';
   const reqAttr = isExisting ? '' : 'required';
-
+  const phoneVal = v('hunterPhone') || '+52 ';
+  const own = v('ownership');
   return `
     <div class="section">
       <div class="section-header">
@@ -1115,40 +1173,45 @@ function renderFormTab() {
       <form id="intakeForm" onsubmit="event.preventDefault(); submitToBackend(this);">
         <div class="section">
           <div class="section-header"><h2 style="font-size:14px">${tr('section_hunter')}</h2></div>
-          <div class="field"><label>${tr('hunter_name')}${req}</label><input type="text" name="hunterName" ${reqAttr} placeholder="${tr('hunter_name_placeholder')}"></div>
-          <div class="field"><label>${tr('hunter_phone')}${req}</label><input type="tel" name="hunterPhone" ${reqAttr} value="+52 "></div>
-          <div class="field"><label>${tr('hunter_email')}</label><input type="email" name="hunterEmail"></div>
+          <div class="field"><label>${tr('hunter_name')}${req}</label><input type="text" name="hunterName" ${reqAttr} placeholder="${tr('hunter_name_placeholder')}" value="${v('hunterName')}"></div>
+          <div class="field"><label>${tr('hunter_phone')}${req}</label><input type="tel" name="hunterPhone" ${reqAttr} value="${phoneVal}"></div>
+          <div class="field"><label>${tr('hunter_email')}</label><input type="email" name="hunterEmail" value="${v('hunterEmail')}"></div>
         </div>
 
         <div class="section">
           <div class="section-header"><h2 style="font-size:14px">${tr('section_location')}</h2></div>
           <div class="field"><label>${tr('state')}${req}</label><select name="state" ${reqAttr}><option value="">${tr('state_placeholder')}</option>${stateOptions}</select></div>
-          <div class="field"><label>${tr('municipality')}${req}</label><input type="text" name="municipality" ${reqAttr} placeholder="${tr('municipality_placeholder')}"></div>
-          <div class="field"><label>${tr('google_maps_link')}</label><input type="url" name="googleMaps" placeholder="https://maps.google.com/..."><span class="help">${tr('google_maps_help')}</span></div>
-          <div class="field"><label>${tr('distance')}</label><input type="number" name="distance" step="0.1" min="0"></div>
+          <div class="field"><label>${tr('municipality')}${req}</label><input type="text" name="municipality" ${reqAttr} placeholder="${tr('municipality_placeholder')}" value="${v('municipality')}"></div>
+          <div class="field"><label>${tr('google_maps_link')}</label><input type="url" name="googleMaps" placeholder="https://maps.google.com/..." value="${v('googleMaps')}"><span class="help">${tr('google_maps_help')}</span></div>
+          <div class="field"><label>${tr('distance')}</label><input type="number" name="distance" step="0.1" min="0" value="${v('distance')}"></div>
         </div>
 
         <div class="section">
           <div class="section-header"><h2 style="font-size:14px">${tr('section_size_price')}</h2></div>
           <div class="row">
-            <div class="field"><label>${tr('land_size')}${req}</label><input type="number" name="landSize" step="0.01" min="0" ${reqAttr}></div>
+            <div class="field"><label>${tr('land_size')}${req}</label><input type="number" name="landSize" step="0.01" min="0" ${reqAttr} value="${v('landSizeHa')}"></div>
             <div class="field"><label>${tr('land_size_unit')}</label><select name="landSizeUnit"><option value="ha">${tr('unit_ha')}</option><option value="m2">${tr('unit_m2')}</option></select></div>
           </div>
-          <div class="field"><label>${tr('price_per_m2')}${req}</label><input type="number" name="pricePerM2" step="0.01" min="0" ${reqAttr}></div>
-          <div class="field"><label>${tr('total_price')}</label><input type="number" name="totalPrice" step="1" min="0"></div>
+          <div class="field"><label>${tr('price_per_m2')}${req}</label><input type="number" name="pricePerM2" step="0.01" min="0" ${reqAttr} value="${v('pricePerM2')}"></div>
+          <div class="field"><label>${tr('total_price')}</label><input type="number" name="totalPrice" step="1" min="0" value="${v('totalPrice')}"></div>
         </div>
 
         <div class="section">
           <div class="section-header"><h2 style="font-size:14px">${tr('section_property_details')}</h2></div>
-          <div class="field"><label>${tr('ownership')}${req}</label><select name="ownership"><option value="Private">${tr('ownership_private')}</option><option value="Ejido">${tr('ownership_ejidal')}</option><option value="Communal">${tr('ownership_communal')}</option><option value="Unknown">${tr('ownership_unknown')}</option></select></div>
-          <div class="field"><label>${tr('land_use')}</label><input type="text" name="landUse" placeholder="${tr('land_use_placeholder')}"></div>
+          <div class="field"><label>${tr('ownership')}${req}</label><select name="ownership">
+            <option value="Private" ${own === 'Private' ? 'selected' : ''}>${tr('ownership_private')}</option>
+            <option value="Ejido" ${own === 'Ejido' ? 'selected' : ''}>${tr('ownership_ejidal')}</option>
+            <option value="Communal" ${own === 'Communal' ? 'selected' : ''}>${tr('ownership_communal')}</option>
+            <option value="Unknown" ${own === 'Unknown' ? 'selected' : ''}>${tr('ownership_unknown')}</option>
+          </select></div>
+          <div class="field"><label>${tr('land_use')}</label><input type="text" name="landUse" placeholder="${tr('land_use_placeholder')}" value="${v('landUse')}"></div>
           <div class="field"><label>${tr('access')}${req}</label><select name="access"><option>${tr('access_good')}</option><option>${tr('access_fair')}</option><option>${tr('access_poor')}</option><option>${tr('access_unknown')}</option></select></div>
           <div class="field"><label>${tr('utilities')}</label><div class="pill-group">${utilPills}</div></div>
         </div>
 
         <div class="section">
           <div class="section-header"><h2 style="font-size:14px">${tr('section_attachments')}</h2></div>
-          <div class="field"><label>${tr('notes_label')}</label><textarea name="hunterNotes" placeholder="${tr('notes_placeholder')}"></textarea></div>
+          <div class="field"><label>${tr('notes_label')}</label><textarea name="hunterNotes" placeholder="${tr('notes_placeholder')}">${v('hunterNotes')}</textarea></div>
         </div>
 
         <button type="submit" class="submit-btn" id="submitBtn">${tr(submitKey)}</button>
@@ -1157,7 +1220,6 @@ function renderFormTab() {
     </div>
   `;
 }
-
 function renderForm() {
   const introKey = mode === 'existing' ? 'form_intro_existing' : 'form_intro_new';
   return `
