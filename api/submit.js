@@ -12,6 +12,7 @@
 const NOTION_API_BASE = 'https://api.notion.com/v1';
 const NOTION_VERSION = '2026-03-11';
 const PROJECTS_DATABASE_ID = '2ff081ea37154987b3d68491451553ae';
+const PROJECTS_DATA_SOURCE_ID = 'ccf41a90-55b9-44bd-92ff-9e014d767d0f';
 
 // Env var lookup that tolerates either casing in Vercel.
 const NOTION_KEY    = process.env.NOTION_API_KEY    || process.env.Notion_API_Key    || '';
@@ -237,7 +238,7 @@ async function createNewProject(serial, form, message, fileUploads) {
   const data = await notionFetch('/pages', {
     method: 'POST',
     body: JSON.stringify({
-      parent: { database_id: PROJECTS_DATABASE_ID },
+      parent: { type: 'data_source_id', data_source_id: PROJECTS_DATA_SOURCE_ID },
       properties: buildProperties(serial, form, message, fileUploads),
     }),
   });
@@ -245,7 +246,7 @@ async function createNewProject(serial, form, message, fileUploads) {
 }
 
 async function findProjectBySerial(serial) {
-  const data = await notionFetch(`/databases/${PROJECTS_DATABASE_ID}/query`, {
+  const data = await notionFetch(`/data_sources/${PROJECTS_DATA_SOURCE_ID}/query`, {
     method: 'POST',
     body: JSON.stringify({
       filter: { property: 'Property Name', title: { starts_with: serial } },
