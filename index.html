@@ -851,6 +851,39 @@ async function submitToBackend(formEl) {
     .map(el => utilDisplayMap[el.dataset.util])
     .filter(Boolean);
 
+  // Read selected files into base64 for the payload. Cap total raw size at
+  // ~3MB so the JSON body (after ~33% base64 inflation) stays under Vercel's 4.5MB limit.
+  const MAX_TOTAL_BYTES = 3 * 1024 * 1024;
+  let totalBytes = 0;
+  for (const f of files) totalBytes += f.size || 0;
+  if (totalBytes > MAX_TOTAL_BYTES) {
+    if (errBox) {
+      errBox.style.display = 'block';
+      errBox.textContent = (locale === 'es'
+        ? 'Archivos demasiado grandes. Total máximo: 3 MB.'
+        : 'Files are too large. Max total: 3 MB.');
+    }
+    if (btn) { btn.disabled = false; btn.textContent = btn.dataset.orig || (locale === 'es' ? 'Enviar' : 'Submit'); }
+    return;
+  }
+
+  const readAsDataUrl = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload  = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+
+  const filesPayload = [];
+  for (const f of files) {
+    try {
+      const data = await readAsDataUrl(f);
+      filesPayload.push({ name: f.name, type: f.type || '', size: f.size || 0, data });
+    } catch (e) {
+      console.warn('failed to read file', f.name, e);
+    }
+  }
+
   const payload = {
     mode: mode === 'existing' ? 'existing' : 'new',
     serial: serialNumber,
@@ -871,6 +904,7 @@ async function submitToBackend(formEl) {
       hunterNotes:  get('hunterNotes'),
     },
     message: (messageText || '').trim() || null,
+    files: filesPayload,
   };
 
   try {
