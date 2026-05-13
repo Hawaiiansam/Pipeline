@@ -384,8 +384,6 @@
 </head>
 <body>
 
-<div class="preview-banner" id="previewBanner">Preview mode. Submissions are not saved.</div>
-
 <header>
   <div class="header-inner">
     <span class="app-title" id="appTitle">Land Opportunity Intake</span>
@@ -669,7 +667,7 @@ function setLocale(l) {
   locale = l;
   document.getElementById('langEn').classList.toggle('active', l === 'en');
   document.getElementById('langEs').classList.toggle('active', l === 'es');
-  document.getElementById('previewBanner').textContent = tr('preview_banner');
+  const _pb = document.getElementById('previewBanner'); if (_pb) _pb.textContent = tr('preview_banner');
   document.getElementById('appTitle').textContent = tr('app_title');
   render();
 }
